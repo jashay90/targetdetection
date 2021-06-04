@@ -8,7 +8,7 @@ DDIR="/mnt/nas/users/julie/megares_v1.01"
 adapters="/mnt/nas/users/julie/envs/amrplusplus/share/trimmomatic/adapters/TruSeq3-PE.fa"
 n=8
 
-while getopts '1:2:o:c:tb:n:ha:d:' flag; do
+while getopts '1:2:o:c:tb:n:ha:d:x' flag; do
 	case $flag in
 		1)
 			IN1=$OPTARG
@@ -39,6 +39,9 @@ while getopts '1:2:o:c:tb:n:ha:d:' flag; do
 			;;
 		d)
 			DDIR=$OPTARG
+			;;
+		x)
+			STOPEARLY=1
 	esac
 done
 
@@ -49,6 +52,7 @@ if [ -n "$h" ]; then
 	echo "use -n to specify number of CPUs. default is 8"
 	echo "use -a to specify the path to adapters if you are trimming reads"
 	echo "use -d to specify the path to the megares database"
+	echo "use -x if you want the pipeline to stop before aligning reads to MEGARes"
 	exit
 fi
 if [ -z $(which bwa) ]; then
@@ -59,7 +63,7 @@ if [ -z $(which samtools) ]; then
 	echo "You need to have samtools installed to use this script."
 	exit
 fi
-if [ -z $(which resistome) ]; then
+if [ -z $(which resistome) ] && [ -z "$STOPEARLY" ]; then
 	echo "You need to have resistome installed to use this script."
 	echo "Look for it at https://github.com/cdeanj/resistomeanalyzer"
 	exit
@@ -69,17 +73,19 @@ if [ -z "$OUT" ]; then
 	exit
 fi
 
-DPREFIX="${DDIR}/megares"
-DB="${DPREFIX}_database_v1.01.fasta"
-AN="${DPREFIX}_annotations_v1.01.csv"
-if [ ! -f $DB ]; then
-	echo "Are you sure you input the correct path to the megares database?"
-	exit
-fi
-if [ ! -f "${DPREFIX}.amb" ]; then
-	mkdir -p $OUT
-	DPREFIX="$OUT/megares"
-	bwa index -p $DPREFIX $DB
+if [ -z "$STOPEARLY" ]; then
+	DPREFIX="${DDIR}/megares"
+	DB="${DPREFIX}_database_v1.01.fasta"
+	AN="${DPREFIX}_annotations_v1.01.csv"
+	if [ ! -f $DB ]; then
+		echo "Are you sure you input the correct path to the megares database?"
+		exit
+	fi
+	if [ ! -f "${DPREFIX}.amb" ]; then
+		mkdir -p $OUT
+		DPREFIX="$OUT/megares"
+		bwa index -p $DPREFIX $DB
+	fi
 fi
 
 
@@ -155,8 +161,10 @@ else
 w
 fi
 
-bwa mem $DPREFIX -t $n -a $FQ1 $FQ2 | samtools view -bT $DB | samtools sort | samtools view > $OUT/bwa_amr.sam &
-wait
+if [ -z "$STOPEARLY" ]; then
+	bwa mem $DPREFIX -t $n -a $FQ1 $FQ2 | samtools view -bT $DB | samtools sort | samtools view > $OUT/bwa_amr.sam &
+	wait
+fi
 
 if [ -n "$CONTAMBAM" ]; then
 	gzip $FQ1 &
@@ -168,9 +176,11 @@ if [ -z "$TRIMMED" ]; then
 	gzip $IN2 &
 fi
 
-resistome -ref_fp $DB -annot_fp $AN -sam_fp $OUT/bwa_amr.sam -gene_fp $OUT/resistome_genes -group_fp $OUT/resistome_groups -mech_fp $OUT/resistome_mechs -class_fp $OUT/resistome_classes -t 1 &
-wait
-
-samtools view -bT $DB $OUT/bwa_amr.sam > $OUT/bwa_amr.bam
-samtools flagstat $OUT/bwa_amr.bam > $OUT/amr_flagstat.txt
-rm $OUT/bwa_amr.sam
+if [ -z "$STOPEARLY" ]; then
+	resistome -ref_fp $DB -annot_fp $AN -sam_fp $OUT/bwa_amr.sam -gene_fp $OUT/resistome_genes -group_fp $OUT/resistome_groups -mech_fp $OUT/resistome_mechs -class_fp $OUT/resistome_classes -t 1 &
+	wait
+	
+	samtools view -bT $DB $OUT/bwa_amr.sam > $OUT/bwa_amr.bam
+	samtools flagstat $OUT/bwa_amr.bam > $OUT/amr_flagstat.txt
+	rm $OUT/bwa_amr.sam
+fi

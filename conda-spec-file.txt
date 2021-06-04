@@ -10,7 +10,6 @@ libcurl=7.62.0=h20c2e04_0
 libdeflate=1.0=h14c3975_1
 libffi=3.2.1=hf484d3e_1005
 libgcc-ng=7.3.0=hdf63c60_0
-libssh2=1.8.0=1
 libstdcxx-ng=7.3.0=hdf63c60_0
 ncurses=6.1=hf484d3e_1002
 openjdk=11.0.1=h14c3975_1014
