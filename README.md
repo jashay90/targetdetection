@@ -10,6 +10,16 @@ You can build a conda environment for these tools using conda-spec-file.txt:
 
 To run AMRPlusPlus, you also need to install the resistome tool. You can find it [here](https://github.com/cdeanj/resistomeanalyzer).
 
+### targetdetection.sh
+targetdetection.sh detects bait-capture targets in bait-capture or shotgun metagenomic read pairs.
+
+	Usage: ./targetdetection.sh -1 in1.fq -2 in2.fq -o outfolder
+	use -t if reads are already trimmed
+	use -c to provide a contaminant genome (either fasta or a bwa index), or -b to provide a bam file if you've already aligned reads against the contaminant genomes
+	use -n to specify number of CPUs. default is 8
+	use -a to specify the path to adapters if you are trimming reads
+	use -d to specify the path to the target fasta file
+
 ### amrplusplus.sh
 amrplusplus.sh runs the AMRPlusPlus pipeline.
 
@@ -21,21 +31,6 @@ amrplusplus.sh runs the AMRPlusPlus pipeline.
 	use -a to specify the path to adapters if you are trimming reads
 	use -d to specify the path to the megares database
 	use -x if you want the pipeline to stop before aligning reads to MEGARes
-
-### aligntargets.sh
-Once amrplusplus.sh is finished running (including host contamination filtering), you can use aligntargets.sh to align reads to bait-capture targets.
-
-	Usage: aligntargets.sh infolder cpus
-
-### readcounts.py
-After running aligntargets.sh, you can use this script to generate read counts from the bam output file.
-
-	usage: readcounts.py [-h] [-t TARGETS] [-b BAM]
-	
-	optional arguments:
-	  -h, --help  show this help message and exit
-	  -t TARGETS  fasta file to which reads were aligned
-	  -b BAM      bam alignment file
 
 ### clusterandmerge_multi.py
 Given a folder containing multiple subfolders where AMRPlusPlus and bait-capture target detection has been done, clusterandmerge_multi.py will combine results from multiple samples into a single table. This script will also cluster targets according to one or more cluster specification files (two specification files, allthethings_amr.tsv and allthethings_plasmid.tsv, are included in this repository, but any tab-delimited files with "ID" and "Cluster" columns could be used).

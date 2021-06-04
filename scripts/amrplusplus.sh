@@ -109,6 +109,7 @@ if [ -z "$CONTAMBAM" ]; then
 	if [ -z "$TRIMMED" ]; then
 		if [ ! -f $adapters ]; then
 			echo "Please specify an adapter file with the -a option to trim reads with this script."
+			rmdir $OUT
 			exit
 		fi
 		if [ -z $(which trimmomatic) ]; then
